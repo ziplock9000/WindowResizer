@@ -1,8 +1,6 @@
-using System;
-using System.Runtime.InteropServices;
-using System.Windows.Forms;
+﻿using System.Runtime.InteropServices;
 
-namespace WindowResizer
+namespace WindowResizer.Library
 {
     public sealed class KeyboardHook : IDisposable
     {
@@ -18,7 +16,7 @@ namespace WindowResizer
 
             public Window()
             {
-                CreateHandle(new CreateParams());
+                NewHandle();
             }
 
             protected override void WndProc(ref Message m)
@@ -33,7 +31,12 @@ namespace WindowResizer
                 KeyPressed?.Invoke(this, new KeyPressedEventArgs(modifier, key));
             }
 
-            public event EventHandler<KeyPressedEventArgs> KeyPressed;
+            private void NewHandle()
+            {
+                CreateHandle(new CreateParams());
+            }
+
+            public event EventHandler<KeyPressedEventArgs>? KeyPressed;
 
             #region IDisposable Members
 
@@ -45,12 +48,12 @@ namespace WindowResizer
             #endregion
         }
 
-        private readonly Window _window = new Window();
+        private readonly Window _window = new();
         private int _currentId;
 
         public KeyboardHook()
         {
-            _window.KeyPressed += delegate (object sender, KeyPressedEventArgs args)
+            _window.KeyPressed += delegate(object? _, KeyPressedEventArgs args)
             {
                 KeyPressed?.Invoke(this, args);
             };
@@ -77,7 +80,7 @@ namespace WindowResizer
         /// <summary>
         /// A hot key has been pressed.
         /// </summary>
-        public event EventHandler<KeyPressedEventArgs> KeyPressed;
+        public event EventHandler<KeyPressedEventArgs>? KeyPressed;
 
         #region IDisposable Members
 

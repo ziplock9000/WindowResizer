@@ -1,22 +1,18 @@
-﻿using System;
-using System.Windows.Automation;
+﻿using System.Windows.Automation;
 
-namespace WindowResizer
+namespace WindowResizer.Library
 {
     public class WindowEventHandler
     {
-        private static AutomationEventHandler _eventHandler = null;
+        private static AutomationEventHandler? _eventHandler;
 
         public WindowEventHandler(Action<IntPtr> windowCreatedHandler)
         {
-            _eventHandler = (sender, e) =>
+            _eventHandler = (sender, _) =>
             {
-                AutomationElement src = sender as AutomationElement;
+                var src = sender as AutomationElement;
                 if (src != null)
                 {
-                    Console.WriteLine("Class : " + src.Current.ClassName);
-                    Console.WriteLine("Title : " + src.Current.Name);
-                    Console.WriteLine("Handle: " + src.Current.NativeWindowHandle);
                     windowCreatedHandler(new IntPtr(src.Current.NativeWindowHandle));
                 }
             };

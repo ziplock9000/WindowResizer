@@ -1,276 +1,275 @@
-using System;
-using System.ComponentModel;
-using System.Linq;
-using System.Windows.Forms;
-using WindowResizer.Properties;
+﻿using WindowResizer.Library;
 
-namespace WindowResizer
+namespace WindowResizer;
+
+public class TrayContext : ApplicationContext
 {
-    public class TrayContext : ApplicationContext
+    private readonly NotifyIcon _trayIcon;
+    private readonly KeyboardHook _hook = new();
+
+    private static SettingForm? _settingForm;
+
+    private static WindowEventHandler? _windowEventHandler;
+
+    public TrayContext()
     {
-        private readonly NotifyIcon _trayIcon;
-        private readonly KeyboardHook _hook = new KeyboardHook();
-
-        private static SettingForm _settingForm;
-
-        private static WindowEventHandler _windowEventHandler;
-
-        public TrayContext()
+        try
         {
-            try
-            {
-                ConfigLoader.Load();
-            }
-            catch (Exception e)
-            {
-                MessageBox.Show($"WindowResizer: config load failed! Exception: {e.Message}");
-            }
-
-            try
-            {
-                RegisterHotkey();
-            }
-            catch (Exception e)
-            {
-                MessageBox.Show($"WindowResizer: register hotkey failed! Exception: {e.Message}");
-            }
-
-            _trayIcon = new NotifyIcon
-            {
-                Icon = Resources.AppIcon,
-                ContextMenu =
-                    new ContextMenu(new MenuItem[] { new MenuItem("Setting", OnSetting), new MenuItem("Exit", OnExit) }),
-                Visible = true,
-                Text = "WindowResizer"
-            };
-
-            _trayIcon.DoubleClick += OnSetting;
-
-            _windowEventHandler = new WindowEventHandler(OnWindowCreated);
-            _windowEventHandler.AddWindowCreateHandle();
+            ConfigLoader.Load();
+        }
+        catch (Exception e)
+        {
+            MessageBox.Show($"WindowResizer: config load failed! Exception: {e.Message}");
         }
 
-        private void OnExit(object sender, EventArgs e)
+        try
         {
-            _settingForm?.Close();
-            _windowEventHandler.RemoveWindowCreateHandle();
-            ConfigLoader.Save();
-            _trayIcon.Dispose();
-            _hook.Dispose();
-            Environment.Exit(0);
+            RegisterHotkey();
+        }
+        catch (Exception e)
+        {
+            MessageBox.Show($"WindowResizer: register hotkey failed! Exception: {e.Message}");
         }
 
-        private void OnSetting(object sender, EventArgs e)
-        {
-            if (_settingForm == null)
-            {
-                _settingForm = new SettingForm(_hook);
-            }
+        var contextMenuStrip = new ContextMenuStrip();
+        contextMenuStrip.Items.Add("Setting", null, OnSetting);
+        contextMenuStrip.Items.Add("Exit", null, OnExit);
 
-            _settingForm.Show();
+        _trayIcon = new NotifyIcon
+        {
+            Icon = Resource.AppIcon,
+            ContextMenuStrip = contextMenuStrip,
+            Visible = true,
+            Text = "WindowResizer"
+        };
+
+        _trayIcon.DoubleClick += OnSetting;
+
+        _windowEventHandler = new WindowEventHandler(OnWindowCreated);
+        _windowEventHandler.AddWindowCreateHandle();
+    }
+
+    private void OnExit(object? sender, EventArgs e)
+    {
+        _settingForm?.Close();
+        _windowEventHandler?.RemoveWindowCreateHandle();
+        ConfigLoader.Save();
+        _trayIcon.Dispose();
+        _hook.Dispose();
+        Environment.Exit(0);
+    }
+
+    private void OnSetting(object? sender, EventArgs e)
+    {
+        _settingForm ??= new SettingForm(_hook);
+        _settingForm.Show();
+    }
+
+    private void RegisterHotkey()
+    {
+        if (!ConfigLoader.Config.SaveKey.ValidateKeys())
+        {
+            MessageBox.Show("Save window hotkeys not valid.");
         }
 
-        private void RegisterHotkey()
+        if (!ConfigLoader.Config.RestoreKey.ValidateKeys())
         {
-            if (!ConfigLoader.Config.SaveKey.ValidateKeys())
-            {
-                MessageBox.Show("Save window hotkeys not valid.");
-            }
-
-            if (!ConfigLoader.Config.RestoreKey.ValidateKeys())
-            {
-                MessageBox.Show("Restore window hotkeys not valid.");
-            }
-
-            _hook.RegisterHotKey(ConfigLoader.Config.SaveKey.GetModifierKeys(), ConfigLoader.Config.SaveKey.GetKey());
-            _hook.RegisterHotKey(ConfigLoader.Config.RestoreKey.GetModifierKeys(), ConfigLoader.Config.RestoreKey.GetKey());
-            _hook.RegisterHotKey(ConfigLoader.Config.RestoreAllKey.GetModifierKeys(), ConfigLoader.Config.RestoreAllKey.GetKey());
-            _hook.KeyPressed += OnKeyPressed;
+            MessageBox.Show("Restore window hotkeys not valid.");
         }
 
-        private void OnKeyPressed(object sender, KeyPressedEventArgs e)
+        _hook.RegisterHotKey(ConfigLoader.Config.SaveKey.GetModifierKeys(),
+            ConfigLoader.Config.SaveKey.GetKey());
+        _hook.RegisterHotKey(ConfigLoader.Config.RestoreKey.GetModifierKeys(),
+            ConfigLoader.Config.RestoreKey.GetKey());
+        _hook.RegisterHotKey(ConfigLoader.Config.RestoreAllKey.GetModifierKeys(),
+            ConfigLoader.Config.RestoreAllKey.GetKey());
+        _hook.KeyPressed += OnKeyPressed;
+    }
+
+    private void OnKeyPressed(object? sender, KeyPressedEventArgs e)
+    {
+        if (ConfigLoader.Config.DisableInFullScreen && WindowControl.IsForegroundFullScreen())
         {
-            if (ConfigLoader.Config.DisableInFullScreen && WindowControl.IsForegroundFullScreen())
-            {
-                return;
-            }
-
-            if (ConfigLoader.Config.WindowSizes == null)
-            {
-                ConfigLoader.Config.WindowSizes = new BindingList<WindowSize>();
-            }
-
-            if (e.Modifier == ConfigLoader.Config.RestoreAllKey.GetModifierKeys()
-                && e.Key == ConfigLoader.Config.RestoreAllKey.GetKey())
-            {
-                var windows = WindowControl.GetOpenWindows();
-                windows.Reverse();
-                foreach (var window in windows)
-                {
-                    ResizeWindow(window, false);
-                }
-            }
-            else
-            {
-                var handle = WindowControl.GetForegroundHandle();
-
-                if (e.Modifier == ConfigLoader.Config.SaveKey.GetModifierKeys() &&
-                    e.Key == ConfigLoader.Config.SaveKey.GetKey())
-                {
-                    UpdateOrSaveWindowSize(handle);
-                }
-                else if (e.Modifier == ConfigLoader.Config.RestoreKey.GetModifierKeys() &&
-                    e.Key == ConfigLoader.Config.RestoreKey.GetKey())
-                {
-                    ResizeWindow(handle, true);
-                }
-            }
+            return;
         }
 
-        private void OnWindowCreated(IntPtr handle)
+        if (e.Modifier == ConfigLoader.Config.RestoreAllKey.GetModifierKeys()
+            && e.Key == ConfigLoader.Config.RestoreAllKey.GetKey())
         {
-            if (WindowControl.IsWindowVisible(handle))
+            var windows = WindowControl.GetOpenWindows();
+            windows.Reverse();
+            foreach (var window in windows)
             {
-                ResizeWindow(handle, false, true);
+                ResizeWindow(window);
             }
         }
-
-        private void ResizeWindow(IntPtr handle, bool tips = false, bool auto = false)
+        else
         {
-            var process = WindowControl.GetRealProcess(handle);
-            if (process == null) return;
+            var handle = WindowControl.GetForegroundHandle();
 
-            var processName = process.MainModule?.ModuleName;
-            if (string.IsNullOrWhiteSpace(processName)) return;
-
-            var title = process.MainWindowTitle;
-            var match = GetMatchWindowSize(ConfigLoader.Config.WindowSizes, processName, title, auto);
-            if (!match.NoMatch)
+            if (e.Modifier == ConfigLoader.Config.SaveKey.GetModifierKeys() &&
+                e.Key == ConfigLoader.Config.SaveKey.GetKey())
             {
-                MoveMatchWindow(match, handle);
+                UpdateOrSaveWindowSize(handle);
             }
-            else
+            else if (e.Modifier == ConfigLoader.Config.RestoreKey.GetModifierKeys() &&
+                     e.Key == ConfigLoader.Config.RestoreKey.GetKey())
             {
-                if (tips)
-                {
-                    var titleStr = string.IsNullOrWhiteSpace(title) ? "" : $"({title})";
-                    _trayIcon.ShowBalloonTip(2000, "WindowResizer",
-                        $"No saved settings for <{processName}>{titleStr}.", ToolTipIcon.Info);
-                }
+                ResizeWindow(handle, true);
             }
         }
+    }
 
-        private void UpdateOrSaveWindowSize(IntPtr handle)
+    private void OnWindowCreated(IntPtr handle)
+    {
+        if (WindowControl.IsWindowVisible(handle))
         {
-            var process = WindowControl.GetRealProcess(handle);
-            var processName = process.MainModule?.ModuleName;
-            var title = process.MainWindowTitle;
-            var match = GetMatchWindowSize(ConfigLoader.Config.WindowSizes, processName, title);
-            UpdateOrSaveConfig(match, processName, title, WindowControl.GetRect(handle));
+            ResizeWindow(handle, false, true);
+        }
+    }
+
+    private void ResizeWindow(IntPtr handle, bool tips = false, bool auto = false)
+    {
+        var process = WindowControl.GetRealProcess(handle);
+        if (process == null) return;
+
+        var processName = process.MainModule?.ModuleName;
+        if (string.IsNullOrWhiteSpace(processName)) return;
+
+        var title = process.MainWindowTitle;
+        var match = GetMatchWindowSize(ConfigLoader.Config.WindowSizes, processName, title, auto);
+        if (!match.NoMatch)
+        {
+            MoveMatchWindow(match, handle);
+        }
+        else if (tips)
+        {
+            var titleStr = string.IsNullOrWhiteSpace(title) ? "" : $"({title})";
+            _trayIcon.ShowBalloonTip(2000, "WindowResizer",
+                $"No saved settings for <{processName}>{titleStr}.", ToolTipIcon.Info);
+        }
+    }
+
+    private void UpdateOrSaveWindowSize(IntPtr handle)
+    {
+        var process = WindowControl.GetRealProcess(handle);
+        var processName = process?.MainModule?.ModuleName;
+        if (process is null || string.IsNullOrWhiteSpace(processName))
+        {
+            return;
         }
 
-        private static MatchWindowSize GetMatchWindowSize(BindingList<WindowSize> windowSizes, string processName,
-            string title, bool auto = false)
+        var title = process.MainWindowTitle;
+        var match = GetMatchWindowSize(ConfigLoader.Config.WindowSizes, processName, title);
+        UpdateOrSaveConfig(match, processName, title, WindowControl.GetRect(handle));
+    }
+
+    private static MatchWindowSize GetMatchWindowSize(
+        IEnumerable<WindowSize> windowSizes,
+        string processName,
+        string title,
+        bool auto = false)
+    {
+        var windows = windowSizes.Where(w =>
+                w.Name.Equals(processName, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (auto)
         {
-            var windows = windowSizes.Where(w => w.Name.Equals(processName, StringComparison.OrdinalIgnoreCase)).ToList();
-
-            if (auto)
-            {
-                windows = windows.Where(w => w.AutoResize).ToList();
-            }
-
-            return new MatchWindowSize
-            {
-                FullMatch = windows.FirstOrDefault(w => w.Title == title),
-                PrefixMatch = windows.FirstOrDefault(w =>
-                    w.Title.StartsWith("*") && w.Title.Length > 1 && title.EndsWith(w.Title.TrimStart('*'))),
-                SuffixMatch = windows.FirstOrDefault(w =>
-                    w.Title.EndsWith("*") && w.Title.Length > 1 && title.StartsWith(w.Title.TrimEnd('*'))),
-                WildcardMatch = windows.FirstOrDefault(w => w.Title.Equals("*"))
-            };
+            windows = windows.Where(w => w.AutoResize).ToList();
         }
 
-        private static void MoveMatchWindow(MatchWindowSize match, IntPtr handle)
+        return new MatchWindowSize
         {
-            if (match.FullMatch != null)
-            {
-                WindowControl.MoveWindow(handle, match.FullMatch.Rect);
-                return;
-            }
+            FullMatch = windows.FirstOrDefault(w => w.Title == title),
+            PrefixMatch = windows.FirstOrDefault(w =>
+                w.Title.StartsWith("*") && w.Title.Length > 1 && title.EndsWith(w.Title.TrimStart('*'))),
+            SuffixMatch = windows.FirstOrDefault(w =>
+                w.Title.EndsWith("*") && w.Title.Length > 1 && title.StartsWith(w.Title.TrimEnd('*'))),
+            WildcardMatch = windows.FirstOrDefault(w => w.Title.Equals("*"))
+        };
+    }
 
-            if (match.PrefixMatch != null)
-            {
-                WindowControl.MoveWindow(handle, match.PrefixMatch.Rect);
-                return;
-            }
-
-            if (match.SuffixMatch != null)
-            {
-                WindowControl.MoveWindow(handle, match.SuffixMatch.Rect);
-                return;
-            }
-
-            if (match.WildcardMatch != null)
-            {
-                WindowControl.MoveWindow(handle, match.WildcardMatch.Rect);
-            }
+    private static void MoveMatchWindow(MatchWindowSize match, IntPtr handle)
+    {
+        if (match.FullMatch != null)
+        {
+            WindowControl.MoveWindow(handle, match.FullMatch.Rect);
+            return;
         }
 
-        private static void UpdateOrSaveConfig(MatchWindowSize match, string processName, string title, Rect rect)
+        if (match.PrefixMatch != null)
         {
-            if (string.IsNullOrWhiteSpace(processName)) return;
+            WindowControl.MoveWindow(handle, match.PrefixMatch.Rect);
+            return;
+        }
 
-            if (match.NoMatch)
-            {
-                // Add a wildcard match for all titles
-                InsertOrder(new WindowSize { Name = processName, Title = "*", Rect = rect });
-                if (string.IsNullOrWhiteSpace(title))
-                {
-                    InsertOrder(new WindowSize { Name = processName, Title = title, Rect = rect });
-                }
+        if (match.SuffixMatch != null)
+        {
+            WindowControl.MoveWindow(handle, match.SuffixMatch.Rect);
+            return;
+        }
 
-                ConfigLoader.Save();
-                return;
-            }
+        if (match.WildcardMatch != null)
+        {
+            WindowControl.MoveWindow(handle, match.WildcardMatch.Rect);
+        }
+    }
 
-            if (match.FullMatch != null)
-            {
-                match.FullMatch.Rect = rect;
-            }
-            else if (!string.IsNullOrWhiteSpace(title))
+    private static void UpdateOrSaveConfig(MatchWindowSize match, string processName, string title, Rect rect)
+    {
+        if (string.IsNullOrWhiteSpace(processName)) return;
+
+        if (match.NoMatch)
+        {
+            // Add a wildcard match for all titles
+            InsertOrder(new WindowSize { Name = processName, Title = "*", Rect = rect });
+            if (string.IsNullOrWhiteSpace(title))
             {
                 InsertOrder(new WindowSize { Name = processName, Title = title, Rect = rect });
             }
 
-            if (match.SuffixMatch != null)
-            {
-                match.SuffixMatch.Rect = rect;
-            }
-
-            if (match.PrefixMatch != null)
-            {
-                match.PrefixMatch.Rect = rect;
-            }
-
-            if (match.WildcardMatch != null)
-            {
-                match.WildcardMatch.Rect = rect;
-            }
-            else
-            {
-                InsertOrder(new WindowSize { Name = processName, Title = "*", Rect = rect });
-            }
-
             ConfigLoader.Save();
+            return;
         }
 
-        private static void InsertOrder(WindowSize item)
+        if (match.FullMatch != null)
         {
-            var list = ConfigLoader.Config.WindowSizes;
-            var backing = list.ToList();
-            backing.Add(item);
-            var index = backing.OrderBy(l => l.Name).ThenBy(l => l.Title).ToList().IndexOf(item);
-            list.Insert(index, item);
+            match.FullMatch.Rect = rect;
         }
+        else if (!string.IsNullOrWhiteSpace(title))
+        {
+            InsertOrder(new WindowSize { Name = processName, Title = title, Rect = rect });
+        }
+
+        if (match.SuffixMatch != null)
+        {
+            match.SuffixMatch.Rect = rect;
+        }
+
+        if (match.PrefixMatch != null)
+        {
+            match.PrefixMatch.Rect = rect;
+        }
+
+        if (match.WildcardMatch != null)
+        {
+            match.WildcardMatch.Rect = rect;
+        }
+        else
+        {
+            InsertOrder(new WindowSize { Name = processName, Title = "*", Rect = rect });
+        }
+
+        ConfigLoader.Save();
+    }
+
+    private static void InsertOrder(WindowSize item)
+    {
+        var list = ConfigLoader.Config.WindowSizes;
+        var backing = list.ToList();
+        backing.Add(item);
+        var index = backing.OrderBy(l => l.Name).ThenBy(l => l.Title).ToList().IndexOf(item);
+        list.Insert(index, item);
     }
 }

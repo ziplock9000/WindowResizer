@@ -1,10 +1,7 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel;
-using System.Drawing;
 using System.IO;
-using System.Windows.Forms;
 using Newtonsoft.Json;
+using WindowResizer.Library;
 
 // ReSharper disable LocalizableElement
 
@@ -12,32 +9,30 @@ namespace WindowResizer
 {
     public partial class SettingForm : Form
     {
-        private static HotKeys _saveKeys;
-        private static HotKeys _restoreKeys;
-        private static HotKeys _restoreAllKeys;
-        private static bool _disableInFullScreen;
-        private static KeyboardHook _hook;
+        private static HotKeys _saveKeys = ConfigLoader.Config.SaveKey;
+        private static HotKeys _restoreKeys = ConfigLoader.Config.RestoreKey;
+        private static HotKeys _restoreAllKeys = ConfigLoader.Config.RestoreAllKey;
+        private static bool _disableInFullScreen = ConfigLoader.Config.DisableInFullScreen;
+        private static KeyboardHook? _hook;
 
         public SettingForm(KeyboardHook hook)
         {
-            InitializeComponent();
-
-            FormBorderStyle = FormBorderStyle.FixedSingle;
-
             _hook = hook;
-            _saveKeys = ConfigLoader.Config.SaveKey;
-            _restoreKeys = ConfigLoader.Config.RestoreKey;
-            _restoreAllKeys = ConfigLoader.Config.RestoreAllKey;
-            _disableInFullScreen = ConfigLoader.Config.DisableInFullScreen;
 
-            FormClosing += SettingForm_Closing;
-            Text = "Setting";
-
+            InitializeComponent();
+            InitForm();
             InitKeyTextBox();
             InitDataGrid();
         }
 
-        #region Init Config Grid
+        #region Init
+
+        private void InitForm()
+        {
+            Text = "Setting";
+            FormBorderStyle = FormBorderStyle.FixedSingle;
+            FormClosing += SettingForm_Closing;
+        }
 
         private void InitDataGrid()
         {
@@ -142,10 +137,6 @@ namespace WindowResizer
             WindowsGrid.CellValueChanged += WindowsGrid_CellValueChanged;
         }
 
-        #endregion
-
-        #region Init Key Bind
-
         private void InitKeyTextBox()
         {
             SaveKeysBox.BackColor = Color.Blue;
@@ -157,23 +148,23 @@ namespace WindowResizer
             RestoreAllKeyBox.BackColor = Color.Blue;
             RestoreAllKeyBox.ForeColor = Color.White;
 
-            SaveKeysBox.KeyDown += (s, e) => textBox_KeyDown(s, e, SaveKeysBox,
+            SaveKeysBox.KeyDown += (_, e) => textBox_KeyDown(e, SaveKeysBox,
                 ref _saveKeys);
             SaveKeysBox.ReadOnly = true;
 
-            RestoreKeysBox.KeyDown += (s, e) => textBox_KeyDown(s, e, RestoreKeysBox, ref _restoreKeys);
+            RestoreKeysBox.KeyDown += (_, e) => textBox_KeyDown(e, RestoreKeysBox, ref _restoreKeys);
             RestoreKeysBox.ReadOnly = true;
 
-            RestoreAllKeyBox.KeyDown += (s, e) => textBox_KeyDown(s, e, RestoreAllKeyBox, ref _restoreAllKeys);
+            RestoreAllKeyBox.KeyDown += (_, e) => textBox_KeyDown(e, RestoreAllKeyBox, ref _restoreAllKeys);
             RestoreAllKeyBox.ReadOnly = true;
 
-            SaveKeysBox.GotFocus += (s, e) => textBox_GotFocus(s, e, SaveKeysBox);
-            RestoreKeysBox.GotFocus += (s, e) => textBox_GotFocus(s, e, RestoreKeysBox);
-            RestoreAllKeyBox.GotFocus += (s, e) => textBox_GotFocus(s, e, RestoreAllKeyBox);
+            SaveKeysBox.GotFocus += (_, _) => textBox_GotFocus(SaveKeysBox);
+            RestoreKeysBox.GotFocus += (_, _) => textBox_GotFocus(RestoreKeysBox);
+            RestoreAllKeyBox.GotFocus += (_, _) => textBox_GotFocus(RestoreAllKeyBox);
 
-            SaveKeysBox.LostFocus += (s, e) => textBox_LostFocus(s, e, SaveKeysBox);
-            RestoreKeysBox.LostFocus += (s, e) => textBox_LostFocus(s, e, RestoreKeysBox);
-            RestoreAllKeyBox.LostFocus += (s, e) => textBox_LostFocus(s, e, RestoreAllKeyBox);
+            SaveKeysBox.LostFocus += (_, _) => textBox_LostFocus(SaveKeysBox);
+            RestoreKeysBox.LostFocus += (_, _) => textBox_LostFocus(RestoreKeysBox);
+            RestoreAllKeyBox.LostFocus += (_, _) => textBox_LostFocus(RestoreAllKeyBox);
 
             SaveKeysBox.Text = _saveKeys.ToKeysString();
             RestoreKeysBox.Text = _restoreKeys.ToKeysString();
@@ -186,17 +177,17 @@ namespace WindowResizer
 
         #endregion
 
-        private void WindowsGrid_CellValueChanged(object sender,
+        private void WindowsGrid_CellValueChanged(object? sender,
             DataGridViewCellEventArgs e)
         {
         }
 
-        private void WindowsGrid_CellFormatting(object sender,
+        private void WindowsGrid_CellFormatting(object? sender,
             DataGridViewCellFormattingEventArgs e)
         {
             if (e.Value != null &&
                 (e.ColumnIndex == WindowsGrid.Columns["Name"]?.Index ||
-                    e.ColumnIndex == WindowsGrid.Columns["Title"]?.Index))
+                 e.ColumnIndex == WindowsGrid.Columns["Title"]?.Index))
             {
                 DataGridViewCell cell =
                     WindowsGrid.Rows[e.RowIndex].Cells[e.ColumnIndex];
@@ -204,7 +195,7 @@ namespace WindowResizer
             }
         }
 
-        private void WindowsGrid_CellClick(object sender, DataGridViewCellEventArgs e)
+        private void WindowsGrid_CellClick(object? sender, DataGridViewCellEventArgs e)
         {
             if (e.ColumnIndex == WindowsGrid.Columns["Remove"]?.Index &&
                 e.RowIndex >= 0 &&
@@ -214,7 +205,7 @@ namespace WindowResizer
             }
         }
 
-        private void textBox_KeyDown(object sender, KeyEventArgs e,
+        private void textBox_KeyDown(KeyEventArgs e,
             TextBox textBox, ref HotKeys hotKeys)
         {
             e.Handled = true;
@@ -264,17 +255,17 @@ namespace WindowResizer
             e.SuppressKeyPress = true;
         }
 
-        private void textBox_GotFocus(object sender, EventArgs e, TextBox textBox)
+        private void textBox_GotFocus(TextBox textBox)
         {
             textBox.BackColor = Color.OrangeRed;
         }
 
-        private void textBox_LostFocus(object sender, EventArgs e, TextBox textBox)
+        private void textBox_LostFocus(TextBox textBox)
         {
             textBox.BackColor = Color.Blue;
         }
 
-        private void SettingForm_Closing(object sender, CancelEventArgs e)
+        private void SettingForm_Closing(object? sender, CancelEventArgs e)
         {
             e.Cancel = true;
             ReloadConfig();
@@ -286,7 +277,7 @@ namespace WindowResizer
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void SaveBtn_Click(object sender, EventArgs e)
+        private void SaveBtn_Click(object? sender, EventArgs e)
         {
             ConfigLoader.Config.SaveKey = _saveKeys;
             ConfigLoader.Config.RestoreKey = _restoreKeys;
@@ -296,10 +287,12 @@ namespace WindowResizer
             ConfigLoader.Save();
 
             //hook
-            _hook.UnRegisterHotKey();
-            _hook.RegisterHotKey(ConfigLoader.Config.SaveKey.GetModifierKeys(), ConfigLoader.Config.SaveKey.GetKey());
-            _hook.RegisterHotKey(ConfigLoader.Config.RestoreKey.GetModifierKeys(), ConfigLoader.Config.RestoreKey.GetKey());
-            _hook.RegisterHotKey(ConfigLoader.Config.RestoreAllKey.GetModifierKeys(), ConfigLoader.Config.RestoreAllKey.GetKey());
+            _hook?.UnRegisterHotKey();
+            _hook?.RegisterHotKey(ConfigLoader.Config.SaveKey.GetModifierKeys(), ConfigLoader.Config.SaveKey.GetKey());
+            _hook?.RegisterHotKey(ConfigLoader.Config.RestoreKey.GetModifierKeys(),
+                ConfigLoader.Config.RestoreKey.GetKey());
+            _hook?.RegisterHotKey(ConfigLoader.Config.RestoreAllKey.GetModifierKeys(),
+                ConfigLoader.Config.RestoreAllKey.GetKey());
 
             Hide();
         }
@@ -309,23 +302,23 @@ namespace WindowResizer
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="e"></param>
-        private void CancelBtn_Click(object sender, EventArgs e)
+        private void CancelBtn_Click(object? sender, EventArgs e)
         {
             ReloadConfig();
             Hide();
         }
 
-        private void checkBox1_CheckedChanged(object sender, EventArgs e)
+        private void checkBox1_CheckedChanged(object? sender, EventArgs e)
         {
             _disableInFullScreen = checkBox1.Checked;
         }
 
-        private void SettingForm_Load(object sender, EventArgs e)
+        private void SettingForm_Load(object? sender, EventArgs e)
         {
             BringToFront();
         }
 
-        private void ConfigExportBtn_Click(object sender, EventArgs e)
+        private void ConfigExportBtn_Click(object? sender, EventArgs e)
         {
             SaveFileDialog saveFileDialog = new SaveFileDialog
             {
@@ -345,7 +338,7 @@ namespace WindowResizer
             }
         }
 
-        private void ConfigImportBtn_Click(object sender, EventArgs e)
+        private void ConfigImportBtn_Click(object? sender, EventArgs e)
         {
             OpenFileDialog openFileDialog = new OpenFileDialog { Title = "Import Config", };
             if (openFileDialog.ShowDialog() != DialogResult.Cancel && openFileDialog.FileName != "")
@@ -354,6 +347,12 @@ namespace WindowResizer
                 {
                     var text = File.ReadAllText(openFileDialog.FileName);
                     var config = JsonConvert.DeserializeObject<Config>(text);
+
+                    if (config is null)
+                    {
+                        return;
+                    }
+
                     ConfigLoader.Config = config;
                     _saveKeys = ConfigLoader.Config.SaveKey;
                     _restoreKeys = ConfigLoader.Config.RestoreKey;
@@ -378,11 +377,11 @@ namespace WindowResizer
             WindowsGrid.DataSource = ConfigLoader.Config.WindowSizes;
         }
 
-        private void checkBox2_CheckedChanged(object sender, EventArgs e)
+        private void checkBox2_CheckedChanged(object? sender, EventArgs e)
         {
             var desc = checkBox2.Checked ? "Enter" : "Exit";
             const MessageBoxButtons messButton = MessageBoxButtons.OKCancel;
-            DialogResult dr = MessageBox.Show($"{desc} portable mode?", "Confirm", messButton);
+            var dr = MessageBox.Show($"{desc} portable mode?", "Confirm", messButton);
             if (dr == DialogResult.OK)
             {
                 ConfigLoader.Move(checkBox2.Checked);

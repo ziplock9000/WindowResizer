@@ -1,7 +1,3 @@
-using System;
-using System.Threading;
-using System.Windows.Forms;
-
 namespace WindowResizer
 {
     static class Program
@@ -11,24 +7,22 @@ namespace WindowResizer
         [STAThread]
         static void Main()
         {
-            using (var mutex = new Mutex(false, "Global\\" + AppGuid))
+            using var mutex = new Mutex(false, "Global\\" + AppGuid);
+            if (!mutex.WaitOne(0, false))
             {
-                if (!mutex.WaitOne(0, false))
-                {
-                    MessageBox.Show("WindowResizer already running");
-                    return;
-                }
-
-                if (Environment.OSVersion.Version.Major >= 6)
-                {
-                    SetProcessDPIAware();
-                }
-
-                Application.EnableVisualStyles();
-                Application.SetCompatibleTextRenderingDefault(false);
-                Application.Run(new TrayContext());
-
+                MessageBox.Show("WindowResizer already running");
+                return;
             }
+
+            if (Environment.OSVersion.Version.Major >= 6)
+            {
+                SetProcessDPIAware();
+            }
+
+            Application.EnableVisualStyles();
+            Application.SetHighDpiMode(HighDpiMode.SystemAware);
+            Application.SetCompatibleTextRenderingDefault(false);
+            Application.Run(new TrayContext());
         }
 
 
