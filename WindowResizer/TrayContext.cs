@@ -130,11 +130,22 @@ public class TrayContext : ApplicationContext
 
     private void ResizeWindow(IntPtr handle, bool tips = false, bool auto = false)
     {
+        if (WindowControl.IsChildWindow(handle))
+        {
+            return;
+        }
+
         var process = WindowControl.GetRealProcess(handle);
-        if (process == null) return;
+        if (process == null)
+        {
+            return;
+        }
 
         var processName = process.MainModule?.ModuleName;
-        if (string.IsNullOrWhiteSpace(processName)) return;
+        if (string.IsNullOrWhiteSpace(processName))
+        {
+            return;
+        }
 
         var title = process.MainWindowTitle;
         var match = GetMatchWindowSize(ConfigLoader.Config.WindowSizes, processName, title, auto);
