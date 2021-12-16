@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 // ReSharper disable InconsistentNaming
 
-namespace WindowResizer.Library
+namespace WindowResizer.Core
 {
     public static class WindowControl
     {

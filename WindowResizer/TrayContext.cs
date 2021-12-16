@@ -1,4 +1,4 @@
-﻿using WindowResizer.Library;
+﻿using WindowResizer.Core;
 
 namespace WindowResizer;
 

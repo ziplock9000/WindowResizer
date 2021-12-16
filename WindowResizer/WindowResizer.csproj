@@ -19,7 +19,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\WindowResizer.Library\WindowResizer.Library.csproj" />
+    <ProjectReference Include="..\WindowResizer.Core\WindowResizer.Core.csproj" />
   </ItemGroup>
 
   <ItemGroup>

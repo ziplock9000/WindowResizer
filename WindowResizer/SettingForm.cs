@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.IO;
 using Newtonsoft.Json;
-using WindowResizer.Library;
+using WindowResizer.Core;
 
 // ReSharper disable LocalizableElement
 

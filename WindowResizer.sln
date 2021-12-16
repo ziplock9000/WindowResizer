@@ -5,7 +5,9 @@ VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WindowResizer", "WindowResizer\WindowResizer.csproj", "{2A9FD1F0-E43F-43F1-ADAA-13DE48F0E688}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowResizer.Library", "WindowResizer.Library\WindowResizer.Library.csproj", "{F5398F6E-2814-4EE6-BD62-7D304230E247}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowResizer.Core", "WindowResizer.Core\WindowResizer.Core.csproj", "{F5398F6E-2814-4EE6-BD62-7D304230E247}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WindowResizer.WPF", "WindowResizer.WPF\WindowResizer.WPF.csproj", "{95EBEF1B-D70F-4CFB-8E94-A030A5A7FA47}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +23,10 @@ Global
 		{F5398F6E-2814-4EE6-BD62-7D304230E247}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F5398F6E-2814-4EE6-BD62-7D304230E247}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F5398F6E-2814-4EE6-BD62-7D304230E247}.Release|Any CPU.Build.0 = Release|Any CPU
+		{95EBEF1B-D70F-4CFB-8E94-A030A5A7FA47}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{95EBEF1B-D70F-4CFB-8E94-A030A5A7FA47}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{95EBEF1B-D70F-4CFB-8E94-A030A5A7FA47}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{95EBEF1B-D70F-4CFB-8E94-A030A5A7FA47}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
